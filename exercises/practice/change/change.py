@@ -1,21 +1,4 @@
 from dataclasses import dataclass
-from itertools import chain
-from pprint import pprint
-
-
-
-# coins [2, 3]
-# 4: [2, 2]
-# 5: [2, 3]
-# 6: [3, 3]
-# 7: [2, 2, 3]
-# 8: [2, 3, 3]
-# 9: [3, 3, 3]
-# 10: [2, 2, 3, 3]
-# 11: [2, 3, 3, 3]
-# 12: [3, 3, 3, 3]
-# 13: [2, 2, 3, 3, 3]
-# 14: [2, 3, 3, 3, 3]
 
 # Next iteration: find a python package that provides tree ops
 
@@ -29,7 +12,7 @@ def find_fewest_coins(coins, target):
     if not paths:
         raise ValueError("can't make target with given coins")
     best_path = min(paths, key=get_coin_count)
-    return get_coin_list(best_path)
+    return sorted(get_coin_list(best_path))
 
 
 @dataclass
@@ -40,17 +23,26 @@ class Node:
     children: list['Node']
     parent: 'Node' = None
 
-    def __repr__(self):
-        return f"Node({self.denom=},{self.count=})"
-
     def add_children(self, denoms, target):
-        for d in denoms:
-            count, remainder = divmod(target, d)
+        for d in reversed(denoms):
+            count = target // d
             if count > 0:
-                child = Node(d, count, remainder, [])
-                child.parent = self
-                self.children.append(child)
-                child.add_children(denoms, remainder)
+                if len(denoms) > 1:
+                    for c in reversed(range(1, count+1)):
+                        child = self.add_child(d, c, target)
+                        if child.target:
+                            child.add_children(denoms[:-1], child.target)
+                        else:
+                            break
+                else:
+                    self.add_child(d, count, target)
+
+    def add_child(self, denom, count, target):
+        remainder = target - count * denom
+        child = Node(denom, count, remainder, [], self)
+        self.children.append(child)
+        return child
+
 
 def build_tree(denoms, target):
     root = Node(0, 0, target, [])
