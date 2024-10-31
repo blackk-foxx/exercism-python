@@ -1,3 +1,6 @@
+from dataclasses import dataclass
+
+
 def find_fewest_coins(coins, target):
     if target == 0:
         return []
@@ -12,42 +15,46 @@ def find_fewest_coins(coins, target):
     return sorted(min(combos, key=len))
 
 
+@dataclass
 class ComboFinder:
-    def __init__(self, denoms, target, max_length):
-        self._denoms = denoms
-        self._target = target
-        self._max_length = max_length
+    denoms: list[int]
+    target: int
+    max_length: int
 
     def find(self):
         combos = []
-        for starting_denom_index in range(len(self._denoms)):
-            for denom in self._denoms[starting_denom_index:]:
-                max_count = min(self._target // denom, self._max_length)
-                counts = range(max_count, 0, -1)
-                combos += self.find_combos_for_denom(counts, denom)
+        for starting_denom_index in range(len(self.denoms)):
+            for denom in self.denoms[starting_denom_index:]:
+                combos += self.find_combos_for_denom(denom)
         return combos
 
-    def find_combos_for_denom(self, counts, denom):
+    def find_combos_for_denom(self, denom):
         result = []
-        for count in counts:
-            combos = self.find_combos_for_denom_and_count(count, denom)
+        max_count = min(self.target // denom, self.max_length)
+        for count in range(max_count, 0, -1):
+            base_combo = [denom] * count
+            combos = self.find_combos_with_base(base_combo, denom)
             if combos:
                 result += combos
-                self._max_length = min(min(len(c) for c in combos), self._max_length)
+                self.update_max_length(combos)
         return result
 
-    def find_combos_for_denom_and_count(self, count, denom):
-        base_combo = [denom] * count
-        total = denom * count
-        if total == self._target:
-            return [base_combo]
-        if denom == self._denoms[-1]:
-            return []
+    def update_max_length(self, combos):
+        min_combo_length = min(len(c) for c in combos)
+        self.max_length = min(min_combo_length, self.max_length)
 
-        next_denom_index = self._denoms.index(denom) + 1
+    def find_combos_with_base(self, base_combo, denom):
+        if sum(base_combo) == self.target:
+            return [base_combo]
+        if denom == self.denoms[-1]:
+            return []
+        return self.find_combos_with_suboptimal_base(base_combo, denom)
+
+    def find_combos_with_suboptimal_base(self, base_combo, denom):
+        next_denom_index = self.denoms.index(denom) + 1
         finder = ComboFinder(
-            denoms=self._denoms[next_denom_index:],
-            target=self._target - total,
-            max_length=self._max_length - len(base_combo),
+            denoms=self.denoms[next_denom_index:],
+            target=self.target - sum(base_combo),
+            max_length=self.max_length - len(base_combo),
         )
         return [base_combo + c for c in finder.find()]
