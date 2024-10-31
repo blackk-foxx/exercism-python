@@ -19,30 +19,21 @@ class ComboFinder:
         self._max_length = max_length
 
     def find(self):
-        counts_for_denom = self.get_counts_for_denom()
-
         combos = []
-        for starting_denom in self._denoms:
-            for denom in self._denoms[self._denoms.index(starting_denom):]:
-                counts = [c for c in counts_for_denom[denom] if c <= self._max_length]
+        for starting_denom_index in range(len(self._denoms)):
+            for denom in self._denoms[starting_denom_index:]:
+                max_count = min(self._target // denom, self._max_length)
+                counts = range(max_count, 0, -1)
                 combos += self.find_combos_for_denom(counts, denom)
         return combos
 
     def find_combos_for_denom(self, counts, denom):
         result = []
         for count in counts:
-            if count <= self._max_length:
-                combos = self.find_combos_for_denom_and_count(count, denom)
-                if combos:
-                    result += combos
-                    self._max_length = min(min(len(c) for c in combos), self._max_length)
-        return result
-
-    def get_counts_for_denom(self):
-        result = {}
-        for denom in self._denoms:
-            max_count = min(self._target // denom, self._max_length)
-            result[denom] = [count for count in reversed(range(1, max_count + 1))]
+            combos = self.find_combos_for_denom_and_count(count, denom)
+            if combos:
+                result += combos
+                self._max_length = min(min(len(c) for c in combos), self._max_length)
         return result
 
     def find_combos_for_denom_and_count(self, count, denom):
